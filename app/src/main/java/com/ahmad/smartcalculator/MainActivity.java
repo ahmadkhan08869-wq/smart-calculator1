@@ -194,13 +194,16 @@ public class MainActivity extends Activity {
     private void refreshVault(){
         if(vaultList==null)return;vaultList.removeAllViews();
         File dir=new File(getFilesDir(),"vault");File[] files=dir.listFiles((d,n)->n.endsWith(".amgv"));
-        if(files==null||files.length==0){TextView empty=new TextView(this);empty.setText("No photos or videos yet. Tap Add Photos / Videos.");empty.setTextColor(Color.LTGRAY);empty.setGravity(Gravity.CENTER);empty.setPadding(0,dp(35),0,dp(35));vaultList.addView(empty);return;}
-        Arrays.sort(files,(a,b)->Long.compare(b.lastModified(),a.lastModified()));
+        if(files==null||files.length==0){LinearLayout empty=new LinearLayout(this);empty.setOrientation(1);empty.setGravity(Gravity.CENTER);empty.setPadding(dp(18),dp(48),dp(18),dp(48));TextView icon=new TextView(this);icon.setText("▧");icon.setTextSize(42);icon.setTextColor(Color.rgb(55,125,204));icon.setGravity(Gravity.CENTER);empty.addView(icon);TextView title=new TextView(this);title.setText("Your gallery is empty");title.setTextColor(Color.WHITE);title.setTextSize(17);title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);title.setGravity(Gravity.CENTER);empty.addView(title);TextView desc=new TextView(this);desc.setText("Tap Add Photos / Videos to save your first item.");desc.setTextColor(Color.rgb(135,155,185));desc.setTextSize(12);desc.setGravity(Gravity.CENTER);desc.setPadding(0,dp(7),0,0);empty.addView(desc);vaultList.addView(empty);return;}
+        Arrays.sort(files,(x,y)->Long.compare(y.lastModified(),x.lastModified()));
         for(File file:files){
-            String label=file.getName().replace(".amgv","").replace('_',' ');
-            TextView item=new TextView(this);item.setText("▣   "+label+"\n      Tap to open  •  Long press to delete");item.setTextColor(Color.WHITE);item.setTextSize(15);item.setPadding(dp(14),dp(16),dp(8),dp(16));item.setBackgroundColor(Color.rgb(17,28,48));
-            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(0,dp(5),0,dp(5));vaultList.addView(item,p);
-            item.setOnClickListener(v->viewEncrypted(file));item.setOnLongClickListener(v->{new AlertDialog.Builder(this).setMessage("Delete this private item?").setNegativeButton("Cancel",null).setPositiveButton("Delete",(d,w)->{file.delete();refreshVault();}).show();return true;});
+            boolean video=file.getName().contains("_VIDEO_");LinearLayout card=new LinearLayout(this);card.setGravity(Gravity.CENTER_VERTICAL);card.setPadding(dp(10),dp(10),dp(10),dp(10));card.setBackground(rounded(Color.rgb(17,28,49),16,Color.rgb(34,56,88)));
+            LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.setMargins(0,0,0,dp(9));vaultList.addView(card,cp);
+            TextView thumb=new TextView(this);thumb.setText(video?"▶":"▧");thumb.setTextColor(Color.rgb(74,169,255));thumb.setTextSize(26);thumb.setGravity(Gravity.CENTER);thumb.setBackground(rounded(Color.rgb(8,25,48),12,Color.rgb(35,80,128)));card.addView(thumb,new LinearLayout.LayoutParams(dp(58),dp(58)));
+            LinearLayout info=new LinearLayout(this);info.setOrientation(1);info.setPadding(dp(12),0,dp(5),0);TextView name=new TextView(this);String label=file.getName().replaceFirst("^[0-9]+_(PHOTO|VIDEO)_","").replace(".amgv","").replace('_',' ');if(label.length()>30)label=label.substring(0,27)+"...";name.setText(label);name.setTextColor(Color.WHITE);name.setTextSize(13);name.setTypeface(Typeface.DEFAULT,Typeface.BOLD);name.setMaxLines(2);info.addView(name);
+            TextView meta=new TextView(this);meta.setText((video?"VIDEO":"PHOTO")+"  •  ENCRYPTED");meta.setTextColor(Color.rgb(62,190,153));meta.setTextSize(10);meta.setPadding(0,dp(5),0,0);info.addView(meta);card.addView(info,new LinearLayout.LayoutParams(0,-2,1));
+            TextView more=new TextView(this);more.setText("⋮");more.setTextColor(Color.rgb(145,163,191));more.setTextSize(24);more.setGravity(Gravity.CENTER);card.addView(more,new LinearLayout.LayoutParams(dp(28),dp(48)));
+            card.setOnClickListener(v->viewEncrypted(file));more.setOnClickListener(v->new AlertDialog.Builder(this).setItems(new String[]{"Open","Delete"},(d,w)->{if(w==0)viewEncrypted(file);else{new AlertDialog.Builder(this).setMessage("Delete this encrypted item permanently?").setNegativeButton("Cancel",null).setPositiveButton("Delete",(dd,ww)->{file.delete();refreshVault();}).show();}}).show());
         }
     }
 
