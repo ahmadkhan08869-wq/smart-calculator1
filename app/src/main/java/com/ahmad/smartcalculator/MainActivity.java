@@ -123,7 +123,7 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(6,12,26));
         LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(dp(16),dp(12),dp(16),dp(12));root.setBackgroundColor(Color.rgb(6,12,26));
         LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);
-        ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.amg_icon);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.amg_logo);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
         header.addView(logo,new LinearLayout.LayoutParams(dp(54),dp(54)));
         LinearLayout brand=new LinearLayout(this);brand.setOrientation(1);brand.setPadding(dp(12),0,0,0);
         TextView name=new TextView(this);name.setText("AMG CALCULATOR");name.setTextColor(Color.WHITE);name.setTextSize(18);name.setTypeface(Typeface.DEFAULT,Typeface.BOLD);brand.addView(name);
