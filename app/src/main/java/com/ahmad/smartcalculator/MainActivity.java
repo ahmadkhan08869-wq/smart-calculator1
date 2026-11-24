@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.GradientDrawable;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.view.Gravity;
@@ -85,52 +86,38 @@ public class MainActivity extends Activity {
         } catch(Exception e) { return ""; }
     }
 
+    private GradientDrawable rounded(int color,int radius,int stroke){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));if(stroke!=0)d.setStroke(dp(1),stroke);return d;}
+
     private void showCalculator() {
-        vaultOpen=false;
-        expression="";
-        getWindow().setStatusBarColor(Color.rgb(5,12,28));
-        LinearLayout root=new LinearLayout(this);
-        root.setOrientation(1);
-        root.setPadding(dp(18),dp(18),dp(18),dp(18));
-        root.setBackgroundColor(Color.rgb(5,10,24));
-
-        TextView title=new TextView(this);
-        title.setText("AMG CALCULATOR");
-        title.setTextColor(Color.rgb(40,160,255));
-        title.setTextSize(17);
-        title.setLetterSpacing(.16f);
-        title.setTypeface(Typeface.DEFAULT_BOLD);
-        title.setGravity(Gravity.CENTER);
-        root.addView(title,new LinearLayout.LayoutParams(-1,dp(52)));
-
-        display=new TextView(this);
-        display.setText("0");
-        display.setTextColor(Color.WHITE);
-        display.setTextSize(42);
-        display.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
-        display.setSingleLine(true);
-        display.setPadding(dp(8),dp(8),dp(8),dp(18));
-        root.addView(display,new LinearLayout.LayoutParams(-1,0,1));
-
+        vaultOpen=false; expression="";
+        getWindow().setStatusBarColor(Color.rgb(6,12,26));
+        LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(dp(16),dp(12),dp(16),dp(12));root.setBackgroundColor(Color.rgb(6,12,26));
+        LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);
+        ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.amg_icon);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        header.addView(logo,new LinearLayout.LayoutParams(dp(54),dp(54)));
+        LinearLayout brand=new LinearLayout(this);brand.setOrientation(1);brand.setPadding(dp(12),0,0,0);
+        TextView name=new TextView(this);name.setText("AMG CALCULATOR");name.setTextColor(Color.WHITE);name.setTextSize(18);name.setTypeface(Typeface.DEFAULT,Typeface.BOLD);brand.addView(name);
+        TextView sub=new TextView(this);sub.setText("SMART  •  PRIVATE  •  SECURE");sub.setTextColor(Color.rgb(130,157,195));sub.setTextSize(10);brand.addView(sub);
+        header.addView(brand,new LinearLayout.LayoutParams(0,-2,1));
+        TextView lock=new TextView(this);lock.setText("▣");lock.setTextSize(22);lock.setTextColor(Color.rgb(72,170,255));lock.setGravity(Gravity.CENTER);lock.setBackground(rounded(Color.rgb(17,35,62),15,Color.rgb(37,88,145)));header.addView(lock,new LinearLayout.LayoutParams(dp(48),dp(48)));lock.setOnClickListener(v->askPin());
+        root.addView(header,new LinearLayout.LayoutParams(-1,dp(62)));
+        TextView caption=new TextView(this);caption.setText("STANDARD CALCULATOR");caption.setTextColor(Color.rgb(125,149,182));caption.setTextSize(10);caption.setLetterSpacing(.15f);caption.setPadding(dp(5),dp(20),0,dp(8));root.addView(caption);
+        LinearLayout screen=new LinearLayout(this);screen.setOrientation(1);screen.setGravity(Gravity.BOTTOM|Gravity.RIGHT);screen.setPadding(dp(18),dp(12),dp(18),dp(16));screen.setBackground(rounded(Color.rgb(17,28,49),22,Color.rgb(34,57,91)));
+        TextView small=new TextView(this);small.setText("");small.setTextColor(Color.rgb(136,158,190));small.setTextSize(15);small.setGravity(Gravity.RIGHT);screen.addView(small,new LinearLayout.LayoutParams(-1,dp(26)));
+        display=new TextView(this);display.setText("0");display.setTextColor(Color.WHITE);display.setTextSize(42);display.setTypeface(Typeface.DEFAULT,Typeface.BOLD);display.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);display.setSingleLine(true);screen.addView(display,new LinearLayout.LayoutParams(-1,dp(70)));
+        LinearLayout.LayoutParams screenP=new LinearLayout.LayoutParams(-1,0,1);screenP.setMargins(0,dp(12),0,dp(14));root.addView(screen,screenP);
         String[][] keys={{"AC","DEL","%","÷"},{"7","8","9","×"},{"4","5","6","−"},{"1","2","3","+"},{"±","0",".","="}};
-        for(String[] line:keys){
-            LinearLayout row=new LinearLayout(this);
-            for(String key:line){
-                Button b=new Button(this);
-                b.setText(key); b.setTextSize(21); b.setAllCaps(false);
-                b.setTextColor(Color.WHITE);
-                int color=key.equals("=")?Color.rgb(0,130,255):
-                    ("÷×−+%".contains(key)&&key.length()==1)?Color.rgb(13,65,125):
-                    (key.equals("AC")||key.equals("DEL")||key.equals("±"))?Color.rgb(40,51,75):Color.rgb(22,31,51);
-                b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color));
-                LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(68),1);
-                p.setMargins(dp(4),dp(5),dp(4),dp(5)); row.addView(b,p);
-                b.setOnClickListener(v->press(key));
-            }
-            root.addView(row);
-        }
+        for(String[] line:keys){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER);for(String key:line){Button b=new Button(this);b.setText(key);b.setTextSize(key.equals("=")?24:20);b.setAllCaps(false);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);b.setTextColor(Color.WHITE);
+            int color=key.equals("=")?Color.rgb(0,132,255):("÷×−+%".contains(key)&&key.length()==1)?Color.rgb(20,66,117):(key.equals("AC")||key.equals("DEL")||key.equals("±"))?Color.rgb(38,51,75):Color.rgb(25,38,61);
+            b.setBackground(rounded(color,17,key.equals("=")?Color.rgb(65,177,255):Color.rgb(36,57,88)));
+            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(65),1);p.setMargins(dp(4),dp(4),dp(4),dp(4));row.addView(b,p);b.setOnClickListener(v->press(key));}
+            root.addView(row,new LinearLayout.LayoutParams(-1,0,1));}
+        TextView footer=new TextView(this);footer.setText("Enter your private PIN and tap  =  to unlock gallery");footer.setTextColor(Color.rgb(119,143,177));footer.setTextSize(11);footer.setGravity(Gravity.CENTER);footer.setPadding(0,dp(9),0,0);root.addView(footer);
         setContentView(root);
     }
+
+    private void askPin(){final EditText pin=new EditText(this);pin.setInputType(2);pin.setSingleLine(true);pin.setHint("Enter private PIN");new AlertDialog.Builder(this).setTitle("Private Gallery").setView(pin).setNegativeButton("Cancel",null).setPositiveButton("Unlock",(d,w)->{String saved=getPreferencesStore().getString("pin_hash",null);if(saved!=null&&hash(pin.getText().toString()).equals(saved))openVault();else Toast.makeText(this,"Incorrect PIN",Toast.LENGTH_SHORT).show();}).show();}
+
 
     private void press(String key) {
         if(key.equals("AC")){expression="";justCalculated=false;updateDisplay();return;}
@@ -159,17 +146,20 @@ public class MainActivity extends Activity {
     private int dp(int n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
 
     private void openVault(){
-        vaultOpen=true;
-        getWindow().setStatusBarColor(Color.rgb(4,12,28));
-        LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(dp(18),dp(16),dp(18),dp(12));root.setBackgroundColor(Color.rgb(5,10,24));
-        TextView title=new TextView(this);title.setText("AMG PRIVATE GALLERY");title.setTextColor(Color.rgb(40,160,255));title.setTextSize(22);title.setTypeface(Typeface.DEFAULT_BOLD);title.setGravity(Gravity.CENTER);root.addView(title,new LinearLayout.LayoutParams(-1,dp(54)));
-        TextView note=new TextView(this);note.setText("Your photos and videos are encrypted on this phone.");note.setTextColor(Color.LTGRAY);note.setTextSize(13);note.setGravity(Gravity.CENTER);root.addView(note);
-        Button add=new Button(this);add.setText("+  Add Photos / Videos");add.setTextColor(Color.WHITE);add.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(0,105,220)));root.addView(add,new LinearLayout.LayoutParams(-1,dp(54)));
-        add.setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("*/*");i.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"image/*","video/*"});i.addCategory(Intent.CATEGORY_OPENABLE);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivityForResult(i,PICK_MEDIA);});
+        vaultOpen=true;getWindow().setStatusBarColor(Color.rgb(6,12,26));
+        LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(dp(16),dp(14),dp(16),dp(12));root.setBackgroundColor(Color.rgb(6,12,26));
+        LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);
+        TextView title=new TextView(this);title.setText("PRIVATE GALLERY");title.setTextColor(Color.WHITE);title.setTextSize(21);title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);header.addView(title,new LinearLayout.LayoutParams(0,dp(48),1));
+        TextView secure=new TextView(this);secure.setText("● ENCRYPTED");secure.setTextColor(Color.rgb(63,196,154));secure.setTextSize(10);secure.setTypeface(Typeface.DEFAULT,Typeface.BOLD);header.addView(secure);root.addView(header);
+        TextView note=new TextView(this);note.setText("Your personal photos and videos");note.setTextColor(Color.rgb(143,162,191));note.setTextSize(13);note.setPadding(0,0,0,dp(14));root.addView(note);
+        LinearLayout add=new LinearLayout(this);add.setGravity(Gravity.CENTER);add.setBackground(rounded(Color.rgb(0,108,225),16,Color.rgb(47,159,255)));TextView plus=new TextView(this);plus.setText("＋");plus.setTextColor(Color.WHITE);plus.setTextSize(24);add.addView(plus);TextView addText=new TextView(this);addText.setText("ADD PHOTOS / VIDEOS");addText.setTextColor(Color.WHITE);addText.setTextSize(14);addText.setTypeface(Typeface.DEFAULT,Typeface.BOLD);addText.setPadding(dp(8),0,0,0);add.addView(addText);root.addView(add,new LinearLayout.LayoutParams(-1,dp(56)));
+        add.setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("*/*");i.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"image/*","video/*"});i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);i.addCategory(Intent.CATEGORY_OPENABLE);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivityForResult(i,PICK_MEDIA);});
+        TextView storage=new TextView(this);storage.setText("▣  STORAGE FOLDER");storage.setTextColor(Color.rgb(126,163,210));storage.setTextSize(11);storage.setPadding(dp(3),dp(15),0,dp(10));root.addView(storage);storage.setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);startActivityForResult(i,4103);});
         ScrollView scroll=new ScrollView(this);vaultList=new LinearLayout(this);vaultList.setOrientation(1);scroll.addView(vaultList);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-        Button back=new Button(this);back.setText("Back to Calculator");back.setTextColor(Color.WHITE);back.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(35,48,72)));root.addView(back);back.setOnClickListener(v->showCalculator());
+        Button back=new Button(this);back.setText("BACK TO CALCULATOR");back.setAllCaps(false);back.setTextColor(Color.WHITE);back.setBackground(rounded(Color.rgb(24,39,64),15,Color.rgb(38,62,97)));root.addView(back,new LinearLayout.LayoutParams(-1,dp(50)));back.setOnClickListener(v->showCalculator());
         setContentView(root);refreshVault();
     }
+
 
     private void refreshVault(){
         if(vaultList==null)return;vaultList.removeAllViews();
