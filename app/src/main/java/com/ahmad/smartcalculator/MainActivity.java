@@ -16,6 +16,7 @@ import android.content.*;
 import android.net.Uri;
 import android.database.Cursor;
 import android.provider.OpenableColumns;
+import androidx.documentfile.provider.DocumentFile;
 import android.util.TypedValue;
 import java.io.*;
 import java.security.KeyStore;
@@ -37,6 +38,7 @@ public class MainActivity extends Activity {
     private boolean justCalculated = false;
     private boolean vaultOpen = false;
     private LinearLayout vaultList;
+    private Uri storageFolder;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -44,6 +46,9 @@ public class MainActivity extends Activity {
         getWindow().setNavigationBarColor(Color.rgb(5, 12, 28));
         if (getPreferencesStore().getString("pin_hash", null) == null) showPinSetup();
         showCalculator();
+        String savedFolder=getPreferencesStore().getString("storage_folder_uri",null);
+        if(savedFolder!=null)storageFolder=Uri.parse(savedFolder);
+        if(getPreferencesStore().getString("pin_hash",null)!=null && !getPreferencesStore().getBoolean("folder_prompted",false) && storageFolder==null) display.postDelayed(this::showFolderPrompt,500);
     }
 
     private android.content.SharedPreferences getPreferencesStore() {
@@ -73,6 +78,7 @@ public class MainActivity extends Activity {
                 } else {
                     getPreferencesStore().edit().putString("pin_hash", hash(a)).apply();
                     Toast.makeText(this,"Private PIN saved on this phone.",Toast.LENGTH_LONG).show();
+                    display.postDelayed(this::showFolderPrompt,500);
                 }
             }).show();
     }
@@ -87,6 +93,30 @@ public class MainActivity extends Activity {
     }
 
     private GradientDrawable rounded(int color,int radius,int stroke){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));if(stroke!=0)d.setStroke(dp(1),stroke);return d;}
+
+    private void showFolderPrompt(){
+        new AlertDialog.Builder(this).setTitle("Choose storage folder")
+            .setMessage("Select a folder in your phone's file manager. AMG will keep an encrypted copy of your private photos and videos there.")
+            .setCancelable(false).setPositiveButton("Choose folder",(d,w)->{
+                Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                startActivityForResult(i,4103);
+            }).setNegativeButton("Use app storage",(d,w)->getPreferencesStore().edit().putBoolean("folder_prompted",true).apply()).show();
+    }
+
+    private void copyEncryptedToFolder(File source)throws Exception{
+        if(storageFolder==null)return;
+        DocumentFile tree=DocumentFile.fromTreeUri(this,storageFolder);
+        if(tree==null||!tree.canWrite())return;
+        DocumentFile dir=tree.findFile("AMG Private Vault");
+        if(dir==null)dir=tree.createDirectory("AMG Private Vault");
+        if(dir==null)return;
+        DocumentFile target=dir.createFile("application/octet-stream",source.getName());
+        if(target==null)return;
+        try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(target.getUri())){
+            byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
+        }
+    }
 
     private void showCalculator() {
         vaultOpen=false; expression="";
@@ -176,9 +206,18 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request,int result,Intent data){
         super.onActivityResult(request,result,data);
-        if(request==PICK_MEDIA && result==RESULT_OK && data!=null && data.getData()!=null){
-            Uri uri=data.getData();try{saveEncrypted(uri);Toast.makeText(this,"Encrypted and saved privately.",Toast.LENGTH_LONG).show();refreshVault();}
-            catch(Exception e){Toast.makeText(this,"Could not save this file: "+e.getMessage(),Toast.LENGTH_LONG).show();}
+        if(request==4103 && result==RESULT_OK && data!=null && data.getData()!=null){
+            Uri uri=data.getData();int flags=data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            try{getContentResolver().takePersistableUriPermission(uri,flags);}catch(Exception ignored){}
+            storageFolder=uri;getPreferencesStore().edit().putString("storage_folder_uri",uri.toString()).putBoolean("folder_prompted",true).apply();
+            Toast.makeText(this,"Storage folder selected.",Toast.LENGTH_LONG).show();return;
+        }
+        if(request==PICK_MEDIA && result==RESULT_OK && data!=null){
+            ArrayList<Uri> selected=new ArrayList<>();
+            if(data.getClipData()!=null){for(int i=0;i<data.getClipData().getItemCount();i++)selected.add(data.getClipData().getItemAt(i).getUri());}
+            else if(data.getData()!=null)selected.add(data.getData());
+            int count=0;for(Uri uri:selected){try{saveEncrypted(uri);count++;}catch(Exception e){Toast.makeText(this,"Could not save one selected file.",Toast.LENGTH_SHORT).show();}}
+            Toast.makeText(this,count+" item(s) encrypted and saved.",Toast.LENGTH_LONG).show();refreshVault();
         }
     }
 
@@ -195,6 +234,7 @@ public class MainActivity extends Activity {
         try(InputStream in=getContentResolver().openInputStream(uri);FileOutputStream fos=new FileOutputStream(out);CipherOutputStream cos=new CipherOutputStream(fos,cipher)){
             fos.write(iv);byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1)cos.write(buf,0,n);
         }
+        copyEncryptedToFolder(out);
     }
 
     private SecretKey getVaultKey()throws Exception{
