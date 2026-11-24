@@ -2,8 +2,8 @@
     <application
         android:allowBackup="false"
         android:label="AMG Calculator"
-        android:icon="@drawable/amg_icon"
-        android:roundIcon="@drawable/amg_icon"
+        android:icon="@drawable/amg_logo"
+        android:roundIcon="@drawable/amg_logo"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:supportsRtl="true">
         <activity
